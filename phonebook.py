@@ -1,12 +1,3 @@
-# Electronic Phone Book
-# =====================
-# 1. Look up an entry
-# 2. Set an entry
-# 3. Delete an entry
-# 4. List all entries
-# 5. Quit
-# What do you want to do (1-5)?
-
 def print_instructions():
     print "~~~~~~~Phonebook~~~~~~~~"
     print "1. Look up entry." 
@@ -51,17 +42,6 @@ def bye(phonebook):
 def do_phonebook(phonebook):
     print_instructions()
     command = raw_input("What would you like to do (1-5)?\n")
-    # while command != "5":
-    #     if command == "1":
-    #         find_entry(phonebook)
-    #     elif command == "2":
-    #         set_entry(phonebook)
-    #     elif command == "3":
-    #         delete_entry(phonebook)
-    #     elif command == "4":
-    #         list_entries(phonebook)
-    #     else:
-    #         print "Please input a number from 1-5.\n"
     command_list = {
         "1": find_entry,
         "2": set_entry,
@@ -79,3 +59,5 @@ def do_phonebook(phonebook):
 
 phonebook = {}
 do_phonebook(phonebook)
+
+
