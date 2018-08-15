@@ -1,5 +1,34 @@
 var rl = require('readline');
 var fs = require('fs');
+var http = require('http');
+
+var checkContact = function (contactName, phonebookObject) {
+    var phonebookKeys = Object.keys(phonebookObject);
+    for (var i = 0; i < phonebookKeys.length; i++) {
+        if (contactName === phonebookKeys[i]) {
+            return JSON.stringify(phonebookObject[phonebookKeys[i]]);
+        } else {
+            return 'Contact not found';
+        }
+    }
+}
+
+
+var server = http.createServer(function (req, res) {
+    fs.readFile('phonebook.txt', 'utf8', function(err, data) {
+        var phonebook = data;
+        if (req.url === '/contacts' && req.method === 'GET') {
+            res.end(phonebook);
+        } else if (req.url.startsWith('/contacts/') && req.method === 'GET') {
+            var phonebookObject = JSON.parse(data);
+            var contactName = req.url.slice('/contacts/'.length)
+            var message = checkContact(contactName, phonebookObject);
+            console.log(message);
+            res.end(message);
+            }
+        });
+    });
+ 
 
 var getInput = function (question, callBack) {
     var readLineInterface = rl.createInterface ({
@@ -52,7 +81,7 @@ var lookUpContact = function (phonebook, callback) {
     getInput('Enter a name you would like to search for. \n', function (err, name) {
         if (phonebook[name]) {
             console.log(entryToString(phonebook, phonebook[name]));
-        }
+        } 
         callback();
     });
 };
@@ -121,3 +150,5 @@ var getPhonebook = function () {
 };
     
 getPhonebook();
+
+server.listen(3002);
