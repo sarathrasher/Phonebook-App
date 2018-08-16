@@ -2,6 +2,14 @@ var rl = require('readline');
 var fs = require('fs');
 var http = require('http');
 
+var writeFile = function (phonebookObject, callback) {
+    fs.writeFile('phonebook.txt', JSON.stringify(phonebookObject), callback);
+};
+
+var generateId = function() {
+    return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString()
+}
+
 var checkContact = function (contactName, phonebookObject) {
     var phonebookKeys = Object.keys(phonebookObject);
     for (var i = 0; i < phonebookKeys.length; i++) {
@@ -13,21 +21,57 @@ var checkContact = function (contactName, phonebookObject) {
     }
 }
 
+var setContact = function (phonebookObject, name, number, id) {
+    phonebookObject[id] = {name: name, number: number, id: id};
+    return phonebookObject[id];
+};
+
+// Helper to read the body
+// sent to you by the browser/Postman
+var readBody = function(req, callback) {
+    var body = '';
+    req.on('data', function(chunk) {
+      body += chunk.toString();
+    });
+    req.on('end', function() {
+      callback(body);
+    });
+  };
 
 var server = http.createServer(function (req, res) {
     fs.readFile('phonebook.txt', 'utf8', function(err, data) {
         var phonebook = data;
+        var phonebookObject = JSON.parse(data);
         if (req.url === '/contacts' && req.method === 'GET') {
             res.end(phonebook);
         } else if (req.url.startsWith('/contacts/') && req.method === 'GET') {
-            var phonebookObject = JSON.parse(data);
-            var contactName = req.url.slice('/contacts/'.length)
-            var message = checkContact(contactName, phonebookObject);
+            var id = req.url.slice('/contacts/'.length);
+            var message = checkContact(id, phonebookObject);
             console.log(message);
             res.end(message);
-            }
-        });
+        } else if (req.url.startsWith('/contacts/') && req.method === 'DELETE') {
+            var id = req.url.slice('/contacts/'.length)
+            delete phonebookObject[id];
+            writeFile(phonebookObject, function(err) {
+                    res.end('Your contact has been deleted');
+            });
+        } else if (req.url === '/contacts' && req.method === 'POST') {
+            var id = generateId();
+            readBody(req, function(body) {
+                var newContact = JSON.parse(body);
+                newContact.id = id;
+                phonebookObject[id] = newContact;
+                console.log(phonebookObject);
+                writeFile(phonebookObject, function (err) {
+                    res.end(JSON.stringify(newContact))
+                });
+            });
+        } 
+        // else if (req.url === '/contacts' && req.method === 'PUT') {
+
+        // }
     });
+});
  
 
 var getInput = function (question, callBack) {
