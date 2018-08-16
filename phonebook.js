@@ -2,15 +2,15 @@ const rl = require('readline');
 const fs = require('fs');
 const http = require('http');
 
-let writeFile = function (phonebookObject, callback) {
+let writeFile = (phonebookObject, callback) => {
     fs.writeFile('phonebook.txt', JSON.stringify(phonebookObject), callback);
 };
 
-let generateId = function() {
+let generateId = () => {
     return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString()
 }
 
-let checkContact = function (contactName, phonebookObject) {
+let checkContact = (contactName, phonebookObject) => {
     let phonebookKeys = Object.keys(phonebookObject);
     for (let i = 0; i < phonebookKeys.length; i++) {
         if (contactName === phonebookKeys[i]) {
@@ -23,18 +23,18 @@ let checkContact = function (contactName, phonebookObject) {
 
 // Helper to read the body
 // sent to you by the browser/Postman
-let readBody = function(req, callback) {
+let readBody = (req, callback) => {
     let body = '';
-    req.on('data', function(chunk) {
+    req.on('data', (chunk) => {
       body += chunk.toString();
     });
-    req.on('end', function() {
+    req.on('end', () => {
       callback(body);
     });
   };
 
-let server = http.createServer(function (req, res) {
-    fs.readFile('phonebook.txt', 'utf8', function(err, data) {
+let server = http.createServer((req, res) => {
+    fs.readFile('phonebook.txt', 'utf8', (err, data) => {
         let phonebook = data;
         let phonebookObject = JSON.parse(data);
         if (req.url === '/contacts' && req.method === 'GET') {
@@ -47,17 +47,17 @@ let server = http.createServer(function (req, res) {
         } else if (req.url.startsWith('/contacts/') && req.method === 'DELETE') {
             let id = req.url.slice('/contacts/'.length)
             delete phonebookObject[id];
-            writeFile(phonebookObject, function(err) {
+            writeFile(phonebookObject, (err) => {
                     res.end('Your contact has been deleted');
             });
         } else if (req.url === '/contacts' && req.method === 'POST') {
             let id = generateId();
-            readBody(req, function(body) {
+            readBody(req, (body) => {
                 let newContact = JSON.parse(body);
                 newContact.id = id;
                 phonebookObject[id] = newContact;
                 console.log(phonebookObject);
-                writeFile(phonebookObject, function (err) {
+                writeFile(phonebookObject, (err) => {
                     res.end(JSON.stringify(newContact))
                 });
             });
@@ -69,25 +69,25 @@ let server = http.createServer(function (req, res) {
 });
  
 
-let getInput = function (question, callBack) {
+let getInput = (question, callBack) => {
     let readLineInterface = rl.createInterface ({
         input: process.stdin,
         output: process.stdout,
         terminal: false
     });
-    readLineInterface.question(question + '\n', function(input) {
+    readLineInterface.question(question + '\n', (input) => {
         readLineInterface.close();
         callBack(null, input);
     });
 };
 
-let addContact = function (phonebook, callback) {
-    getInput('Enter the name you would like to add. \n', function (err, name) {
+let addContact = (phonebook, callback) => {
+    getInput('Enter the name you would like to add. \n', (err, name) => {
         if (err) {
             console.log('Oops! Something went wrong.');
             callback();
         } else {
-            getInput('Enter the phone number you would like to add. \n', function (err, phoneNumber) {
+            getInput('Enter the phone number you would like to add. \n', (err, phoneNumber) => {
                 if (err) {
                     console.log('Please enter a valid phone number.');
                 } else {
@@ -100,13 +100,13 @@ let addContact = function (phonebook, callback) {
     });
 };
 
-let entryToString = function (phonebook, name) {
+let entryToString = (phonebook, name) => {
     let entryString = `Name: ${name} \nNumber: ${phonebook[name]}`
     return entryString
 };
 
-let deleteContact = function (phonebook, callback) {
-    getInput('Enter the name of the contact you would like to delete.', function (err, name) {
+let deleteContact = (phonebook, callback) => {
+    getInput('Enter the name of the contact you would like to delete.', (err, name) => {
         if (err) {
             console.log('There was an error in deleting this file');
         } else {
@@ -116,8 +116,8 @@ let deleteContact = function (phonebook, callback) {
     });
 }
 
-let lookUpContact = function (phonebook, callback) {
-    getInput('Enter a name you would like to search for. \n', function (err, name) {
+let lookUpContact = (phonebook, callback) => {
+    getInput('Enter a name you would like to search for. \n', (err, name) => {
         if (phonebook[name]) {
             console.log(entryToString(phonebook, phonebook[name]));
         } 
@@ -125,7 +125,7 @@ let lookUpContact = function (phonebook, callback) {
     });
 };
 
-let listAllEntries = function (phonebook, callback) {
+let listAllEntries = (phonebook, callback) => {
     let phonebookKeys = Object.keys(phonebook);
     for (let i = 0; i < phonebookKeys.length; i++) {
         let entry = entryToString(phonebook, phonebookKeys[i])
@@ -134,7 +134,7 @@ let listAllEntries = function (phonebook, callback) {
     callback();
 };
 
-let printInstructions = function () {
+let printInstructions = () => {
     console.log('~~~~~~~Phonebook~~~~~~');
     console.log('1. Look up a contact.');
     console.log('2. Add a contact.');
@@ -143,7 +143,7 @@ let printInstructions = function () {
     console.log('5. Quit this application.')
 }
 
-let runPhonebook = function (phonebook, fileName) {
+let runPhonebook = (phonebook, fileName) => {
     printInstructions();
     let menuObject = {
         1: lookUpContact,
@@ -151,17 +151,17 @@ let runPhonebook = function (phonebook, fileName) {
         3: deleteContact,
         4: listAllEntries,
     };
-    getInput('Enter a command. \n', function(err, input) {
+    getInput('Enter a command. \n', (err, input) => {
         if (input != 5) {
             if (menuObject[input]) {
-                menuObject[input](phonebook, function () {
+                menuObject[input](phonebook, () => {
                     runPhonebook(phonebook, fileName);
                 });
             } else {
                 console.log('Invalid input.')
             }
         } else {
-            fs.writeFile(`${fileName}`, JSON.stringify(phonebook), function (err) {
+            fs.writeFile(`${fileName}`, JSON.stringify(phonebook), (err) => {
                 if (err) {
                     console.log('Error in writing file.');
                 } 
@@ -171,12 +171,12 @@ let runPhonebook = function (phonebook, fileName) {
     });
 };
 
-let getPhonebook = function () {
-    getInput('Enter the phonebook file name. \n', function (err, fileName) {
+let getPhonebook = () => {
+    getInput('Enter the phonebook file name. \n', (err, fileName) => {
         if (err) {
             console.log('Please enter a valid file name.');
         } else {
-            fs.readFile(fileName, 'utf8', function (err, data) {
+            fs.readFile(fileName, 'utf8', (err, data) => {
                 if (err) {
                     console.log('This is not a valid file name.');
                 } else {
