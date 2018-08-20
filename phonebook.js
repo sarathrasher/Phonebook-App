@@ -8,7 +8,9 @@ let checkContact = (contactName, phonebookObject) => {
     for (let i = 0; i < phonebookKeys.length; i++) {
         if (contactName === phonebookKeys[i]) {
             return JSON.stringify(phonebookObject[phonebookKeys[i]]);
-        } 
+        } else {
+            return '404 Contact Not Found.'
+        }
     }
 };
 
@@ -28,25 +30,25 @@ let readBody = (req, callback) => {
     });
   };
 
-let getContacts = (req, res, phonebook, phonebookObject) => {
+let getContacts = (req, res, phonebook, phonebookObject, matches) => {
     res.end(phonebook);
 }
 
-let getContact = (req, res, phonebook, phonebookObject) => {
-    let id = req.url.slice('/contacts/'.length);
-    console.log();
-    res.end(JSON.stringify(phonebookObject[id]));
+let getContact = (req, res, phonebook, phonebookObject, matches) => {
+    let id = matches[0];
+    var message = checkContact(id, phonebookObject);
+    res.end(message);
 }
 
-let deleteContact = (req, res, phonebook, phonebookObject) => {
-    let id = req.url.slice('/contacts/'.length)
+let deleteContact = (req, res, phonebook, phonebookObject, matches) => {
+    let id = matches[0];
     delete phonebookObject[id];
     writeFile(phonebookObject, (err) => {
         res.end('Your contact has been deleted');
     });
 }
 
-let createContact = (req, res, phonebook, phonebookObject) => {
+let createContact = (req, res, phonebook, phonebookObject, matches) => {
     let id = generateId();
     readBody(req, (body) => {
         let newContact = JSON.parse(body);
@@ -59,19 +61,19 @@ let createContact = (req, res, phonebook, phonebookObject) => {
     });
 };
 
-let notFound = (req, res, phonebook, phonebookObject) => {
+let notFound = (req, res, phonebook, phonebookObject, matches) => {
     res.end('404 Contact Not Found');
 }
 
 let routes = [
     {
         method: 'GET',
-        url: /^\/contacts\/[0-9]+$/,
+        url: /^\/contacts\/([0-9]+)$/,
         run: getContact
     },
     {
         method: 'DELETE',
-        url: /^\/contacts\/[0-9]+$/,
+        url: /^\/contacts\/([0-9]+)$/,
         run: deleteContact
     },
     {
@@ -95,11 +97,13 @@ let server = http.createServer((req, res) => {
     fs.readFile('phonebook.txt', 'utf8', (err, data) => {
         let phonebook = data;
         let phonebookObject = JSON.parse(data);
-        for (route of routes)
-        if (route.url.test(req.url) && route.method === req.method) {
-            route.run(req, res, phonebook, phonebookObject);
-            break
-        }
+        for (route of routes) {
+            if (route.url.test(req.url) && route.method === req.method) {
+                let matches = route.url.exec(req.url);
+                route.run(req, res, phonebook, phonebookObject, matches.slice(1));
+                break
+            }
+        }   
     });
 });
 
