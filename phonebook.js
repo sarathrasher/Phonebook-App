@@ -62,7 +62,7 @@ let createContact = (req, res, phonebook, phonebookObject, matches) => {
 };
 
 let notFound = (req, res, phonebook, phonebookObject, matches) => {
-    res.end('404 Contact Not Found');
+    res.end('404 URL Not Found');
 }
 
 let routes = [
@@ -94,16 +94,24 @@ let routes = [
 ];
 
 let server = http.createServer((req, res) => {
-    fs.readFile('phonebook.txt', 'utf8', (err, data) => {
-        let phonebook = data;
-        let phonebookObject = JSON.parse(data);
-        for (route of routes) {
-            if (route.url.test(req.url) && route.method === req.method) {
-                let matches = route.url.exec(req.url);
-                route.run(req, res, phonebook, phonebookObject, matches.slice(1));
-                break
-            }
-        }   
+    let file = 'frontend/' + req.url.slice(1);
+    console.log(file);
+    fs.readFile(file, 'utf8', (err, data) => {
+        if (err) {
+            fs.readFile('phonebook.txt', 'utf8', (err, data) => {
+                let phonebook = data;
+                let phonebookObject = JSON.parse(data);
+                for (route of routes) {
+                    if (route.url.test(req.url) && route.method === req.method) {
+                        let matches = route.url.exec(req.url);
+                        route.run(req, res, phonebook, phonebookObject, matches.slice(1));
+                        break
+                    }
+                } 
+            });
+        } else {
+            res.end(data);
+        }
     });
 });
 
