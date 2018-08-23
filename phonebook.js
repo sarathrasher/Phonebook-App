@@ -1,24 +1,9 @@
 const fs = require('fs');
 const http = require('http');
+const pg = require('pg-promise')();
+const db= pg('postgres://saramuntean@localhost:5432/db_phonebook');
 
 // Node phonebook app
-
-let checkContact = (contactName, phonebookObject) => {
-    let phonebookKeys = Object.keys(phonebookObject);
-    for (let i = 0; i < phonebookKeys.length; i++) {
-        if (contactName === phonebookKeys[i]) {
-            return JSON.stringify(phonebookObject[phonebookKeys[i]]);
-        } else {
-            return '404 Contact Not Found.'
-        }
-    }
-};
-
-let writeFile = (phonebookObject, callback) => {
-    fs.writeFile('phonebook.txt', JSON.stringify(phonebookObject), callback);
-};
-
-let generateId = () => { return Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString() };
 
 let readBody = (req, callback) => {
     let body = '';
@@ -30,38 +15,37 @@ let readBody = (req, callback) => {
     });
   };
 
-let getContacts = (req, res, phonebook, phonebookObject, matches) => {
-    res.end(phonebook);
+let getContacts = (req, res, matches) => {
+    console.log("hello")
+   db.query('SELECT * FROM phonebook;')
+   .then((results) => {res.end(JSON.stringify(results))});
 }
 
-let getContact = (req, res, phonebook, phonebookObject, matches) => {
+let getContact = (req, res, matches) => {
     let id = matches[0];
-    var message = checkContact(id, phonebookObject);
-    res.end(message);
+    db.one(`SELECT * from phonebook WHERE id = ${id};`)
+    .then((results) => {res.end(JSON.stringify(results))});
 }
 
-let deleteContact = (req, res, phonebook, phonebookObject, matches) => {
+let deleteContact = (req, res, matches) => {
     let id = matches[0];
-    delete phonebookObject[id];
-    writeFile(phonebookObject, (err) => {
-        res.end('Your contact has been deleted');
-    });
-}
+    db.query(`DELETE from phonebook WHERE id = ${id};`)
+    .then((results) => {res.end('This contact has been deleted')});
+};
 
-let createContact = (req, res, phonebook, phonebookObject, matches) => {
-    let id = generateId();
+let createContact = (req, res, matches) => {
     readBody(req, (body) => {
         let newContact = JSON.parse(body);
-        newContact.id = id;
-        phonebookObject[id] = newContact;
-        console.log(phonebookObject);
-        writeFile(phonebookObject, (err) => {
-            res.end(JSON.stringify(newContact))
-        });
+        db.one(`
+        INSERT INTO phonebook (name, number)
+        VALUES
+            ('${newContact.name}', '${newContact.number}')
+            returning *;`)
+            .then((results) => {res.end(JSON.stringify(results))});
     });
 };
 
-let notFound = (req, res, phonebook, phonebookObject, matches) => {
+let notFound = (req, res, matches) => {
     res.end('404 URL Not Found');
 }
 
@@ -98,17 +82,13 @@ let server = http.createServer((req, res) => {
     console.log(file);
     fs.readFile(file, 'utf8', (err, data) => {
         if (err) {
-            fs.readFile('phonebook.txt', 'utf8', (err, data) => {
-                let phonebook = data;
-                let phonebookObject = JSON.parse(data);
-                for (route of routes) {
-                    if (route.url.test(req.url) && route.method === req.method) {
-                        let matches = route.url.exec(req.url);
-                        route.run(req, res, phonebook, phonebookObject, matches.slice(1));
-                        break
-                    }
-                } 
-            });
+            for (route of routes) {
+                if (route.url.test(req.url) && route.method === req.method) {
+                    let matches = route.url.exec(req.url);
+                    route.run(req, res, matches.slice(1));
+                    break
+                };
+            }
         } else {
             res.end(data);
         }
