@@ -2,6 +2,7 @@ const fs = require('fs');
 const http = require('http');
 const pg = require('pg-promise')();
 const db= pg('postgres://saramuntean@localhost:5432/db_phonebook');
+const express = require('express');
 
 // Node phonebook app
 
@@ -15,25 +16,25 @@ let readBody = (req, callback) => {
     });
   };
 
-let getContacts = (req, res, matches) => {
+let getContacts = (req, res) => {
     console.log("hello")
    db.query('SELECT * FROM phonebook;')
    .then((results) => {res.end(JSON.stringify(results))});
 }
 
-let getContact = (req, res, matches) => {
-    let id = matches[0];
+let getContact = (req, res) => {
+    let id = req.params.id
     db.one(`SELECT * from phonebook WHERE id = ${id};`)
     .then((results) => {res.end(JSON.stringify(results))});
 }
 
-let deleteContact = (req, res, matches) => {
-    let id = matches[0];
+let deleteContact = (req, res) => {
+    let id = req.params.id
     db.query(`DELETE from phonebook WHERE id = ${id};`)
     .then((results) => {res.end('This contact has been deleted')});
 };
 
-let createContact = (req, res, matches) => {
+let createContact = (req, res) => {
     readBody(req, (body) => {
         let newContact = JSON.parse(body);
         db.one(`
@@ -45,54 +46,23 @@ let createContact = (req, res, matches) => {
     });
 };
 
-let notFound = (req, res, matches) => {
+let notFound = (req, res) => {
     res.end('404 URL Not Found');
 }
 
-let routes = [
-    {
-        method: 'GET',
-        url: /^\/contacts\/([0-9]+)$/,
-        run: getContact
-    },
-    {
-        method: 'DELETE',
-        url: /^\/contacts\/([0-9]+)$/,
-        run: deleteContact
-    },
-    {
-        method: 'POST',
-        url: /^\/contacts\/?$/,
-        run: createContact
-    },
-    {
-        method: 'GET',
-        url: /^\/contacts\/?$/,
-        run: getContacts
-    },
-    {
-        method: 'GET',
-        url: /^.*$/,
-        run: notFound
-    }
-];
-
-let server = http.createServer((req, res) => {
-    let file = 'frontend/' + req.url.slice(1);
-    console.log(file);
-    fs.readFile(file, 'utf8', (err, data) => {
-        if (err) {
-            for (route of routes) {
-                if (route.url.test(req.url) && route.method === req.method) {
-                    let matches = route.url.exec(req.url);
-                    route.run(req, res, matches.slice(1));
-                    break
-                };
-            }
-        } else {
-            res.end(data);
-        }
+let getHomepage = (req, res) => {
+    let file = 'frontend/' + req.params.id;
+     console.log(file);
+     fs.readFile(`${file}`, 'utf8', (err, data) => {                 res.end(data);
     });
-});
+};
+
+let server = express();
+
+server.get('/contacts', getContacts)
+server.post('/contacts', createContact);
+server.get('/contacts/:id', getContact);
+server.delete('/contacts/:id', deleteContact);
+server.get('/:id', getHomepage)
 
 server.listen(3002);
