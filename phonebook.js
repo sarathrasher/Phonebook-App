@@ -1,3 +1,4 @@
+const fs = require('fs');
 const http = require('http');
 const pg = require('pg-promise')();
 const db= pg('postgres://saramuntean@localhost:5432/db_phonebook');
@@ -49,20 +50,19 @@ let notFound = (req, res) => {
     res.end('404 URL Not Found');
 }
 
-let getHomepage  = () => {
-    let file = 'frontend/' + req.url.slice(1);
+let getHomepage = (req, res) => {
+    let file = 'frontend/' + req.params.id;
      console.log(file);
-     fs.readFile(file, 'utf8', (err, data) => {                 res.end(data);
+     fs.readFile(`${file}`, 'utf8', (err, data) => {                 res.end(data);
     });
 };
 
 let server = express();
 
-server.get('/', getHomepage)
 server.get('/contacts', getContacts)
 server.post('/contacts', createContact);
 server.get('/contacts/:id', getContact);
 server.delete('/contacts/:id', deleteContact);
-
+server.get('/:id', getHomepage)
 
 server.listen(3002);
